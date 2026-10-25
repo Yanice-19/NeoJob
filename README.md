@@ -1,7 +1,7 @@
 # Neo Job
 
 Site d'offres d'emploi : consultation des annonces, candidature (avec CV), comptes utilisateurs et back office d'administration.
-Projet Epitech Pré-MSc 2026-2027, réalisé en binôme par **Yanice Eloundi** et **Jacob Essomba**.
+Projet Epitech 2026-2027.
 
 ## Sommaire
 
