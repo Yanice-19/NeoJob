@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="fr">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Job Board</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap"
+            rel="stylesheet"
+        />
+        <link rel="stylesheet" href="/style.css" />
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    </head>
+    <body>
+        <!-- en-tête : logo + boutons de connexion -->
+        <header class="site-header">
+            <a
+                href="/"
+                style="
+                    display: flex;
+                    align-items: center;
+                    gap: 14px;
+                    text-decoration: none;
+                    color: #f6f8f3;
+                "
+            >
+                <img src="/logo.svg" alt="" width="44" height="44" />
+                <span style="font-size: 32px; font-weight: 700">Neo Job</span>
+            </a>
+
+            <!-- les boutons sont cachés ou affichés par le script selon la connexion -->
+            <div id="auth-bar">
+                <a href="/login.html" id="btn-login">Connexion</a>
+                <a href="/register.html" id="btn-register">Créer un compte</a>
+                <span id="bonjour" hidden></span>
+                <a href="/admin.html" id="btn-admin" hidden>Admin</a>
+                <a href="/account.html" id="btn-compte" hidden>Mon compte</a>
+                <button id="btn-logout" hidden>Déconnexion</button>
+            </div>
+        </header>
+
+        <!-- bandeau d'accueil -->
+        <section class="hero">
+            <h1>Trouvez le poste qui vous ressemble</h1>
+            <p>
+                Design, développement, data : parcourez les annonces et postulez
+                en quelques clics.
+            </p>
+        </section>
+
+        <main>
+            <!-- filtres et tri (les options sont ajoutées par le script) -->
+            <div class="barre-filtres">
+                <div class="filtres-grille">
+                    <label
+                        >Catégorie
+                        <select id="filtre-categorie">
+                            <option value="">Toutes</option>
+                        </select>
+                    </label>
+                    <label
+                        >Contrat
+                        <select id="filtre-contrat">
+                            <option value="">Tous</option>
+                        </select>
+                    </label>
+                    <label
+                        >Ville
+                        <select id="filtre-lieu">
+                            <option value="">Toutes</option>
+                        </select>
+                    </label>
+                    <label
+                        >Trier par
+                        <select id="tri">
+                            <option value="defaut">Par défaut</option>
+                            <option value="salaire-asc">
+                                Salaire croissant
+                            </option>
+                            <option value="salaire-desc">
+                                Salaire décroissant
+                            </option>
+                            <option value="titre">Titre (A → Z)</option>
+                        </select>
+                    </label>
+                </div>
+                <div class="filtres-pied">
+                    <span id="compteur"></span>
+                    <button id="btn-reset" class="secondaire">
+                        Réinitialiser
+                    </button>
+                </div>
+            </div>
+
+            <!-- les annonces sont insérées ici -->
+            <div id="liste"></div>
+        </main>
+
+        <!-- pied de page -->
+        <footer class="site-footer">
+            <div class="footer-contenu">
+                <div class="footer-marque">
+                    <span class="footer-titre">Neo Job</span>
+                    <p>Trouvez le poste qui vous ressemble.</p>
+                </div>
+                <div class="footer-infos">
+                    <p>Yanice Eloundi</p>
+                </div>
+            </div>
+            <p class="footer-copy">© 2026 Neo Job</p>
+        </footer>
+
+        <script>
+            // ---------- 1. petites fonctions utiles ----------
+
+            // une ligne "label : valeur" pour le détail d'une annonce
+            function ligne(label, valeur) {
+                const p = document.createElement("p");
+                const strong = document.createElement("strong");
+                strong.textContent = label + " : ";
+                p.appendChild(strong);
+                p.appendChild(document.createTextNode(valeur || "-"));
+                return p;
+            }
+
+            // toutes les annonces reçues du serveur (les filtres travaillent dessus)
+            let toutesLesAnnonces = [];
+
+            // transforme "35000 €/an" ou "2500 €/mois" en montant annuel
+            // pour pouvoir comparer les salaires entre eux
+            function salaireAnnuel(texte) {
+                if (!texte) return null;
+                const chiffres = texte.replace(/\s/g, "").match(/\d+/);
+                if (!chiffres) return null;
+                let montant = Number(chiffres[0]);
+                if (texte.includes("mois")) montant = montant * 12;
+                return montant;
+            }
+
+            // ---------- 2. une annonce (carte + détails + formulaire) ----------
+
+            function creerBloc(annonce) {
+                const bloc = document.createElement("article");
+                bloc.innerHTML = `
+                    <h2></h2>
+                    <p class="description"></p>
+                    <button class="btn-details">En savoir plus</button>
+                    <button class="btn-apply">Postuler</button>
+                    <div class="detail" hidden></div>
+                    <form class="form-apply" hidden>
+                        <label>Nom <input name="name" required></label>
+                        <label>E-mail <input name="email" type="email" required></label>
+                        <label>Téléphone <input name="phone"></label>
+                        <label>Message <textarea name="message" rows="4" required></textarea></label>
+                        <label>CV (Format PDF) <input type="file" name="cv" accept=".pdf" required></label>
+                        <button type="submit">Envoyer ma candidature</button>
+                        <p class="retour"></p>
+                    </form>
+                `;
+                // textContent plutôt qu'innerHTML pour le texte venant de la base
+                bloc.querySelector("h2").textContent = annonce.title;
+                bloc.querySelector(".description").textContent =
+                    annonce.description;
+
+                const detail = bloc.querySelector(".detail");
+                const formulaire = bloc.querySelector(".form-apply");
+
+                // bouton "En savoir plus" : affiche ou cache le détail
+                bloc.querySelector(".btn-details").addEventListener(
+                    "click",
+                    () => {
+                        if (!detail.hidden) {
+                            detail.hidden = true;
+                            return;
+                        }
+                        // on va chercher l'annonce complète (avec entreprise et catégorie)
+                        fetch("/ads/" + annonce.id)
+                            .then((reponse) => reponse.json())
+                            .then((ad) => {
+                                detail.innerHTML = "";
+                                detail.appendChild(
+                                    ligne("Entreprise", ad.company_name)
+                                );
+                                detail.appendChild(
+                                    ligne("Catégorie", ad.category_name)
+                                );
+                                detail.appendChild(ligne("Salaire", ad.salary));
+                                detail.appendChild(ligne("Lieu", ad.location));
+                                detail.appendChild(
+                                    ligne("Temps de travail", ad.working_time)
+                                );
+                                detail.appendChild(
+                                    ligne("Description", ad.description)
+                                );
+                                detail.hidden = false;
+                            });
+                    }
+                );
+
+                // bouton "Postuler" : ouvre le formulaire
+                bloc.querySelector(".btn-apply").addEventListener(
+                    "click",
+                    () => {
+                        formulaire.hidden = !formulaire.hidden;
+                        // si on est connecté, on pré-remplit et on masque nom / email / tel
+                        if (utilisateur) {
+                            formulaire.elements.name.value = utilisateur.name;
+                            formulaire.elements.email.value = utilisateur.email;
+                            formulaire.elements.phone.value =
+                                utilisateur.phone || "";
+                            const labels = formulaire.querySelectorAll("label");
+                            if (labels[0]) labels[0].hidden = true;
+                            if (labels[1]) labels[1].hidden = true;
+                            if (labels[2]) labels[2].hidden = true;
+                        }
+                    }
+                );
+
+                // envoi de la candidature
+                formulaire.addEventListener("submit", (evenement) => {
+                    evenement.preventDefault();
+                    const retour = formulaire.querySelector(".retour");
+
+                    // FormData : obligatoire pour envoyer un fichier avec les champs
+                    const formData = new FormData();
+                    formData.append("name", formulaire.elements.name.value);
+                    formData.append("email", formulaire.elements.email.value);
+                    formData.append("phone", formulaire.elements.phone.value);
+                    formData.append(
+                        "message",
+                        formulaire.elements.message.value
+                    );
+
+                    const fileInput = formulaire.elements.cv;
+                    if (fileInput.files.length > 0) {
+                        formData.append("cv", fileInput.files[0]);
+                    }
+
+                    fetch("/ads/" + annonce.id + "/applications", {
+                        method: "POST",
+                        body: formData,
+                    })
+                        .then((reponse) =>
+                            reponse
+                                .json()
+                                .then((json) => ({ ok: reponse.ok, json }))
+                        )
+                        .then((resultat) => {
+                            if (resultat.ok) {
+                                retour.className = "retour ok";
+                                retour.textContent =
+                                    "Candidature envoyée. Merci !";
+                                formulaire.reset();
+                            } else {
+                                // message d'erreur renvoyé par le serveur
+                                retour.className = "retour erreur";
+                                retour.textContent = resultat.json.error;
+                            }
+                        })
+                        .catch(() => {
+                            retour.className = "retour erreur";
+                            retour.textContent = "Erreur réseau.";
+                        });
+                });
+
+                return bloc;
+            }
+
+            // ---------- 3. filtres ----------
+
+            function ajouterOption(select, valeur, texte) {
+                const option = document.createElement("option");
+                option.value = valeur;
+                option.textContent = texte;
+                select.appendChild(option);
+            }
+
+            // remplit les listes déroulantes
+            function remplirFiltres(categories) {
+                const selCategorie =
+                    document.getElementById("filtre-categorie");
+                categories.forEach((c) =>
+                    ajouterOption(selCategorie, c.id, c.name)
+                );
+
+                // contrats et villes : valeurs uniques tirées des annonces
+                const contrats = [
+                    ...new Set(toutesLesAnnonces.map((a) => a.working_time)),
+                ];
+                const villes = [
+                    ...new Set(toutesLesAnnonces.map((a) => a.location)),
+                ];
+                const selContrat = document.getElementById("filtre-contrat");
+                const selLieu = document.getElementById("filtre-lieu");
+                contrats
+                    .filter(Boolean)
+                    .sort()
+                    .forEach((c) => ajouterOption(selContrat, c, c));
+                villes
+                    .filter(Boolean)
+                    .sort()
+                    .forEach((v) => ajouterOption(selLieu, v, v));
+            }
+
+            // ---------- 4. affichage de la liste ----------
+
+            function afficherListe() {
+                const categorie =
+                    document.getElementById("filtre-categorie").value;
+                const contrat = document.getElementById("filtre-contrat").value;
+                const lieu = document.getElementById("filtre-lieu").value;
+                const tri = document.getElementById("tri").value;
+
+                // on garde les annonces qui correspondent aux filtres choisis
+                let resultat = toutesLesAnnonces.filter(
+                    (a) =>
+                        (categorie === "" ||
+                            String(a.category_id) === categorie) &&
+                        (contrat === "" || a.working_time === contrat) &&
+                        (lieu === "" || a.location === lieu)
+                );
+
+                // tri (les annonces sans salaire passent à la fin)
+                if (tri === "salaire-asc" || tri === "salaire-desc") {
+                    resultat.sort((a, b) => {
+                        const sa = salaireAnnuel(a.salary);
+                        const sb = salaireAnnuel(b.salary);
+                        if (sa === null && sb === null) return 0;
+                        if (sa === null) return 1;
+                        if (sb === null) return -1;
+                        return tri === "salaire-asc" ? sa - sb : sb - sa;
+                    });
+                } else if (tri === "titre") {
+                    resultat.sort((a, b) =>
+                        a.title.localeCompare(b.title, "fr")
+                    );
+                }
+
+                const liste = document.getElementById("liste");
+                liste.innerHTML = "";
+                document.getElementById("compteur").textContent =
+                    resultat.length +
+                    (resultat.length > 1 ? " annonces" : " annonce");
+
+                // aucun résultat
+                if (resultat.length === 0) {
+                    const vide = document.createElement("p");
+                    vide.className = "aucun-resultat";
+                    vide.textContent =
+                        "Aucune annonce ne correspond à vos critères.";
+                    liste.appendChild(vide);
+                    return;
+                }
+                resultat.forEach((annonce) =>
+                    liste.appendChild(creerBloc(annonce))
+                );
+            }
+
+            // ---------- 5. événements des filtres ----------
+
+            // on réaffiche la liste à chaque changement
+            [
+                "filtre-categorie",
+                "filtre-contrat",
+                "filtre-lieu",
+                "tri",
+            ].forEach((id) => {
+                document
+                    .getElementById(id)
+                    .addEventListener("change", afficherListe);
+            });
+
+            // bouton réinitialiser
+            document
+                .getElementById("btn-reset")
+                .addEventListener("click", () => {
+                    document.getElementById("filtre-categorie").value = "";
+                    document.getElementById("filtre-contrat").value = "";
+                    document.getElementById("filtre-lieu").value = "";
+                    document.getElementById("tri").value = "defaut";
+                    afficherListe();
+                });
+
+            // ---------- 6. chargement des données au démarrage ----------
+
+            // annonces et catégories en même temps
+            Promise.all([
+                fetch("/ads").then((reponse) => reponse.json()),
+                fetch("/categories?limit=100").then((reponse) =>
+                    reponse.json()
+                ),
+            ]).then(([annonces, categories]) => {
+                toutesLesAnnonces = annonces;
+                remplirFiltres(categories.data);
+                afficherListe();
+            });
+
+            // ---------- 7. connexion ----------
+
+            // null tant que personne n'est connecté
+            let utilisateur = null;
+
+            // demande au serveur qui est connecté et adapte les boutons
+            async function verifierConnexion() {
+                const res = await fetch("/auth/me");
+                if (!res.ok) return;
+
+                utilisateur = await res.json();
+
+                document.getElementById("btn-login").hidden = true;
+                document.getElementById("btn-register").hidden = true;
+
+                document.getElementById("bonjour").textContent =
+                    "Bonjour " + utilisateur.name;
+                document.getElementById("bonjour").hidden = false;
+                document.getElementById("btn-compte").hidden = false;
+                document.getElementById("btn-logout").hidden = false;
+
+                // le bouton Admin n'apparait que pour un admin
+                if (utilisateur.role === "admin") {
+                    document.getElementById("btn-admin").hidden = false;
+                }
+            }
+
+            // déconnexion puis retour à l'accueil
+            document
+                .getElementById("btn-logout")
+                .addEventListener("click", async () => {
+                    await fetch("/auth/logout", { method: "POST" });
+                    window.location.href = "/";
+                });
+
+            verifierConnexion();
+        </script>
+    </body>
+</html>

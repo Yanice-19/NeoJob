@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="fr">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Créer un compte - Neo job</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap"
+            rel="stylesheet"
+        />
+        <link rel="stylesheet" href="/style.css" />
+
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    </head>
+    <body>
+        <header class="site-header">
+            <a
+                href="/"
+                style="
+                    display: flex;
+                    align-items: center;
+                    gap: 14px;
+                    text-decoration: none;
+                    color: #f6f8f3;
+                "
+            >
+                <img src="/logo.svg" alt="" width="44" height="44" />
+                <span style="font-size: 32px; font-weight: 700">Neo Job</span>
+            </a>
+        </header>
+        <main class="etroit">
+            <form id="formulaire">
+                <h2>Créer un compte</h2>
+                <label>Nom <input name="name" required /></label>
+                <label
+                    >E-mail <input name="email" type="email" required
+                /></label>
+                <label>Téléphone <input name="phone" /></label>
+                <label
+                    >Mot de passe
+                    <input name="password" type="password" required
+                /></label>
+                <button type="submit">Créer mon compte</button>
+                <p class="erreur" id="erreur"></p>
+            </form>
+            <p class="lien">
+                Déjà un compte ? <a href="/login.html">Se connecter</a>
+            </p>
+        </main>
+
+        <footer class="site-footer">
+            <div class="footer-contenu">
+                <div class="footer-marque">
+                    <span class="footer-titre">Neo Job</span>
+                    <p>Trouvez le poste qui vous ressemble.</p>
+                </div>
+                <div class="footer-infos">
+                    <p>Yanice Eloundi</p>
+                </div>
+            </div>
+            <p class="footer-copy">© 2026 Neo Job</p>
+        </footer>
+
+        <script>
+            const formulaire = document.getElementById("formulaire");
+            const erreur = document.getElementById("erreur");
+
+            formulaire.addEventListener("submit", (evenement) => {
+                evenement.preventDefault();
+                const donnees = {
+                    name: formulaire.elements.name.value,
+                    email: formulaire.elements.email.value,
+                    phone: formulaire.elements.phone.value,
+                    password: formulaire.elements.password.value,
+                };
+                // On envoie les infos à l'API pour créer le compte
+                fetch("/auth/register", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(donnees),
+                })
+                    .then((reponse) =>
+                        reponse
+                            .json()
+                            .then((json) => ({ ok: reponse.ok, json }))
+                    )
+                    .then((resultat) => {
+                        if (resultat.ok) {
+                            // Compte créé : on est connecté, direction la page d'accueil
+                            window.location.href = "/";
+                        } else {
+                            erreur.textContent = resultat.json.error;
+                        }
+                    });
+            });
+        </script>
+    </body>
+</html>

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="fr">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Mon compte - Neo Job</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap"
+            rel="stylesheet"
+        />
+        <link rel="stylesheet" href="/style.css" />
+
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    </head>
+    <body>
+        <header class="site-header">
+            <a
+                href="/"
+                style="
+                    display: flex;
+                    align-items: center;
+                    gap: 14px;
+                    text-decoration: none;
+                    color: #f6f8f3;
+                "
+            >
+                <img src="/logo.svg" alt="" width="44" height="44" />
+                <span style="font-size: 32px; font-weight: 700">Neo Job</span>
+            </a>
+            <nav class="site-nav">
+                <a href="/">← Retour aux annonces</a>
+            </nav>
+        </header>
+        <main class="etroit">
+            <form id="form-compte">
+                <label>Nom <input name="name" required /></label>
+                <label
+                    >E-mail <input name="email" type="email" required
+                /></label>
+                <label>Téléphone <input name="phone" /></label>
+                <label
+                    >Nouveau mot de passe (laisser vide pour garder l'actuel)
+                    <input name="password" type="password" />
+                </label>
+                <button type="submit">Enregistrer</button>
+                <p id="retour"></p>
+            </form>
+        </main>
+
+        <footer class="site-footer">
+            <div class="footer-contenu">
+                <div class="footer-marque">
+                    <span class="footer-titre">Neo Job</span>
+                    <p>Trouvez le poste qui vous ressemble.</p>
+                </div>
+                <div class="footer-infos">
+                    <p>Yanice Eloundi</p>
+                </div>
+            </div>
+            <p class="footer-copy">© 2026 Neo Job</p>
+        </footer>
+
+        <script>
+            const formulaire = document.getElementById("form-compte");
+            const retour = document.getElementById("retour");
+
+            // 1. On récupère l'utilisateur connecté pour pré-remplir le formulaire
+            fetch("/auth/me").then((reponse) => {
+                if (!reponse.ok) {
+                    // Pas connecté : retour à la page de connexion
+                    window.location.href = "/login.html";
+                    return;
+                }
+                reponse.json().then((user) => {
+                    formulaire.elements.name.value = user.name;
+                    formulaire.elements.email.value = user.email;
+                    formulaire.elements.phone.value = user.phone || "";
+                });
+            });
+
+            // 2. Enregistrement des modifications
+            formulaire.addEventListener("submit", (evenement) => {
+                evenement.preventDefault();
+                const donnees = {
+                    name: formulaire.elements.name.value,
+                    email: formulaire.elements.email.value,
+                    phone: formulaire.elements.phone.value,
+                    password: formulaire.elements.password.value,
+                };
+                fetch("/auth/me", {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(donnees),
+                }).then((reponse) =>
+                    reponse.json().then((json) => {
+                        if (reponse.ok) {
+                            retour.className = "ok";
+                            retour.textContent = "Compte mis à jour.";
+                            formulaire.elements.password.value = "";
+                        } else {
+                            retour.className = "erreur";
+                            retour.textContent = json.error;
+                        }
+                    })
+                );
+            });
+        </script>
+    </body>
+</html>

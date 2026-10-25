@@ -1,0 +1,611 @@
+/* ==========================================================
+   Neo Job - feuille de style commune à toutes les pages
+   Thème : vert foncé + menthe
+   ========================================================== */
+
+/* 1. Les couleurs sont rangées dans des "variables" :
+      pour changer le thème, on modifie ici et c'est partout pareil. */
+:root {
+    --fond: #f6f8f3;
+    --vert-fonce: #0f2e24;
+    --vert-moyen: #163d31;
+    --vert-bordure: #245443;
+    --menthe: #7fd6a8;
+    --vert-bouton: #1f7a4d;
+    --vert-pale: #e3f3ea;
+    --texte: #12261e;
+    --texte-doux: #3e5a4f;
+    --texte-gris: #52695e;
+    --texte-clair: #bfd8cc;
+    --bordure: #dce5dc;
+    --bordure-champ: #b9cbbf;
+    --orange: #b3541e;
+    --rouge: #c62828;
+}
+
+/* L'attribut "hidden" doit toujours cacher l'élément */
+[hidden] {
+    display: none !important;
+}
+
+/* 2. Base de la page */
+body {
+    margin: 0;
+    background: var(--fond);
+    color: var(--texte);
+    font-family: "DM Sans", Arial, sans-serif;
+    line-height: 1.5;
+}
+
+a {
+    color: var(--vert-bouton);
+    text-decoration: none;
+}
+a:hover {
+    text-decoration: underline;
+}
+
+h1,
+h2 {
+    line-height: 1.2;
+}
+
+/* 3. En-tête (header) : même structure sur toutes les pages */
+.site-header {
+    background: var(--vert-fonce);
+    padding: 20px 48px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--fond);
+    font-size: 24px;
+    font-weight: 700;
+}
+.brand:hover {
+    text-decoration: none;
+}
+
+.logo {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: var(--menthe);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.site-nav,
+#auth-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 24px;
+}
+
+.site-header a:not(.brand) {
+    color: var(--menthe);
+    font-weight: 500;
+}
+.site-header a:not(.brand):hover {
+    color: #ffffff;
+    text-decoration: none;
+}
+
+#bonjour {
+    color: var(--texte-clair);
+}
+
+/* 4. Bandeau d'accueil (page index) */
+.hero {
+    background: var(--vert-fonce);
+    padding: 24px 48px 72px;
+}
+.hero h1 {
+    margin: 0 0 16px;
+    font-size: 56px;
+    font-weight: 700;
+    color: var(--fond);
+    max-width: 760px;
+}
+.hero p {
+    margin: 0;
+    font-size: 20px;
+    color: var(--texte-clair);
+    max-width: 640px;
+}
+
+/* 5. Contenu principal */
+main {
+    max-width: 880px;
+    margin: 30px auto;
+    padding: 0 20px;
+}
+/* Quand il y a un bandeau, les cartes "remontent" dessus */
+.hero + main {
+    margin-top: -40px;
+}
+main.etroit {
+    max-width: 440px;
+}
+main.large {
+    max-width: 1180px;
+}
+
+/* 6. Cartes d'annonces */
+article {
+    background: #ffffff;
+    border: 1px solid var(--bordure);
+    border-radius: 20px;
+    padding: 28px;
+    margin-bottom: 20px;
+    box-shadow: 0 8px 24px rgba(15, 46, 36, 0.08);
+}
+article h2 {
+    margin: 0 0 8px;
+    font-size: 32px;
+}
+article .description {
+    margin: 0 0 20px;
+    font-size: 18px;
+    color: var(--texte-doux);
+}
+
+/* Zone "Learn more" : affichée en grille de 2 colonnes */
+.detail {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--bordure);
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px 24px;
+}
+.detail p {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 500;
+}
+.detail strong {
+    display: block;
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--texte-gris);
+}
+/* La dernière ligne (Description) prend toute la largeur */
+.detail p:last-child {
+    grid-column: 1 / -1;
+}
+
+/* 7. Boutons */
+button {
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 500;
+    padding: 12px 22px;
+    border-radius: 12px;
+    border: 1px solid var(--vert-bouton);
+    background: var(--vert-bouton);
+    color: #ffffff;
+    cursor: pointer;
+    margin-right: 8px;
+}
+button:hover {
+    background: #17613c;
+    border-color: #17613c;
+}
+button:disabled {
+    background: #ffffff;
+    border-color: var(--bordure);
+    color: #8fa79b;
+    cursor: not-allowed;
+}
+
+/* Bouton "Learn more" : contour seulement */
+.btn-details,
+button.secondaire {
+    background: #ffffff;
+    color: var(--vert-bouton);
+}
+.btn-details:hover,
+button.secondaire:hover {
+    background: var(--vert-pale);
+    color: var(--vert-bouton);
+}
+
+/* Bouton "Send application" et boutons principaux des formulaires */
+form button[type="submit"] {
+    background: var(--vert-fonce);
+    border-color: var(--vert-fonce);
+    color: var(--menthe);
+    font-weight: 700;
+}
+form button[type="submit"]:hover {
+    background: var(--vert-moyen);
+    border-color: var(--vert-moyen);
+}
+
+/* Boutons dans l'en-tête (Log out) : contour menthe */
+.site-header button {
+    background: transparent;
+    border: 1px solid var(--menthe);
+    color: var(--menthe);
+    padding: 10px 20px;
+    border-radius: 10px;
+    margin-right: 0;
+}
+.site-header button:hover {
+    background: var(--vert-moyen);
+}
+
+/* 8. Formulaires */
+form {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--bordure);
+}
+
+label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 14px;
+}
+
+input,
+textarea,
+select {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    margin-top: 6px;
+    padding: 12px 14px;
+    border: 1px solid var(--bordure-champ);
+    border-radius: 12px;
+    background: var(--fond);
+    color: var(--texte);
+    font-family: inherit;
+    font-size: 16px;
+}
+input:focus,
+textarea:focus,
+select:focus {
+    outline: 2px solid var(--menthe);
+    border-color: var(--vert-bouton);
+}
+textarea {
+    resize: vertical;
+}
+
+/* Pages connexion / inscription / compte / admin : le formulaire est une carte */
+main.etroit form,
+#formulaire {
+    background: #ffffff;
+    border: 1px solid var(--bordure);
+    border-radius: 20px;
+    padding: 28px;
+    box-shadow: 0 8px 24px rgba(15, 46, 36, 0.08);
+}
+main.etroit form button[type="submit"] {
+    width: 100%;
+    margin: 8px 0 0;
+}
+
+.lien {
+    text-align: center;
+    margin-top: 16px;
+    color: var(--texte-gris);
+}
+
+/* 9. Messages de retour */
+.ok {
+    color: var(--vert-bouton);
+    font-weight: 500;
+}
+.erreur {
+    color: var(--rouge);
+    font-weight: 500;
+}
+
+/* 10. Page admin */
+#onglets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+#onglets button {
+    margin: 0;
+    padding: 10px 20px;
+    font-weight: 500;
+    background: #ffffff;
+    color: var(--texte-doux);
+    border: 1px solid var(--bordure);
+    text-transform: capitalize;
+}
+#onglets button:hover {
+    background: var(--vert-pale);
+}
+#onglets button.actif {
+    background: var(--vert-fonce);
+    color: var(--menthe);
+    font-weight: 700;
+    border-color: var(--vert-fonce);
+}
+
+#btn-nouveau {
+    margin-bottom: 4px;
+    font-weight: 700;
+    padding: 12px 24px;
+}
+
+/* Tableau */
+.table-wrap {
+    margin-top: 20px;
+    background: #ffffff;
+    border: 1px solid var(--bordure);
+    border-radius: 20px;
+    overflow-x: auto;
+}
+table {
+    width: 100%;
+    min-width: 760px;
+    border-collapse: collapse;
+    font-size: 16px;
+}
+th,
+td {
+    text-align: left;
+    padding: 14px 20px;
+    border-bottom: 1px solid #e6ede6;
+}
+th {
+    background: var(--vert-fonce);
+    color: var(--menthe);
+    font-weight: 700;
+}
+tbody tr:nth-child(even) {
+    background: var(--fond);
+}
+tbody tr:last-child td {
+    border-bottom: none;
+}
+td:first-child {
+    color: var(--texte-gris);
+}
+/* La colonne des boutons ne passe jamais à la ligne */
+td:last-child {
+    white-space: nowrap;
+}
+
+/* Boutons "Edit" / "Delete" dans le tableau : petits, contour */
+td button {
+    font-size: 14px;
+    padding: 8px 16px;
+    border-radius: 10px;
+    background: #ffffff;
+    color: var(--vert-bouton);
+}
+td button:hover {
+    background: var(--vert-pale);
+}
+td button.danger {
+    border-color: var(--orange);
+    color: var(--orange);
+    background: #ffffff;
+}
+td button.danger:hover {
+    background: #fbeee6;
+}
+
+/* Pagination : le texte à gauche, les boutons à droite */
+#pagination {
+    margin-top: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+#pagination span {
+    order: -1;
+    margin-right: auto;
+    color: var(--texte-gris);
+}
+#pagination button {
+    margin: 0;
+}
+
+/* 11. Barre de filtres et de tri (page d'accueil) */
+.barre-filtres {
+    background: #ffffff;
+    border: 1px solid var(--bordure);
+    border-radius: 20px;
+    padding: 20px 28px;
+    margin-bottom: 20px;
+    box-shadow: 0 8px 24px rgba(15, 46, 36, 0.08);
+}
+.filtres-grille {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 16px;
+}
+.barre-filtres label {
+    margin: 0;
+    font-size: 14px;
+    color: var(--texte-gris);
+}
+.barre-filtres select {
+    color: var(--texte);
+}
+.filtres-pied {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--bordure);
+}
+#compteur {
+    color: var(--texte-gris);
+    font-weight: 500;
+}
+.filtres-pied button {
+    margin: 0;
+    padding: 8px 16px;
+    font-size: 14px;
+}
+.aucun-resultat {
+    text-align: center;
+    color: var(--texte-gris);
+    padding: 32px 0;
+    font-size: 18px;
+}
+
+/* 12. Responsive : tablette puis téléphone */
+@media (max-width: 900px) {
+    .site-header,
+    .hero {
+        padding-left: 28px;
+        padding-right: 28px;
+    }
+    .hero h1 {
+        font-size: 44px;
+    }
+}
+
+@media (max-width: 640px) {
+    .site-header {
+        padding: 16px 20px;
+        gap: 12px;
+    }
+    .brand {
+        font-size: 20px;
+    }
+    .site-nav,
+    #auth-bar {
+        gap: 14px;
+        font-size: 14px;
+    }
+    .hero {
+        padding: 16px 20px 56px;
+    }
+    .hero h1 {
+        font-size: 34px;
+    }
+    .hero p {
+        font-size: 17px;
+    }
+    .hero + main {
+        margin-top: -32px;
+    }
+    main {
+        padding: 0 16px;
+    }
+    article {
+        padding: 20px;
+    }
+    article h2 {
+        font-size: 24px;
+    }
+    article .description,
+    .detail p {
+        font-size: 16px;
+    }
+    .detail {
+        grid-template-columns: 1fr;
+    }
+    article button {
+        width: 100%;
+        margin: 0 0 8px;
+    }
+    .barre-filtres {
+        padding: 16px;
+    }
+    .filtres-grille {
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+    main.etroit form,
+    #formulaire {
+        padding: 20px;
+    }
+    #btn-nouveau {
+        width: 100%;
+    }
+    th,
+    td {
+        padding: 12px 14px;
+    }
+    #pagination {
+        justify-content: space-between;
+    }
+}
+
+@media (max-width: 380px) {
+    .filtres-grille {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* 14. Pied de page + footer toujours en bas */
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+main {
+    width: 100%;
+    box-sizing: border-box;
+    flex: 1;
+}
+
+.site-footer {
+    background: var(--vert-fonce);
+    color: var(--texte-clair);
+    padding: 36px 48px 24px;
+    margin-top: 40px;
+}
+.footer-contenu {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 24px;
+    max-width: 1180px;
+    margin: 0 auto;
+}
+.footer-titre {
+    color: var(--menthe);
+    font-size: 24px;
+    font-weight: 700;
+}
+.site-footer p {
+    margin: 4px 0;
+}
+.footer-infos {
+    text-align: right;
+}
+.site-footer .footer-copy {
+    max-width: 1180px;
+    margin: 24px auto 0;
+    padding-top: 16px;
+    border-top: 1px solid var(--bordure-vert);
+    font-size: 14px;
+    color: var(--texte-gris);
+}
+
+@media (max-width: 640px) {
+    .site-footer {
+        padding: 28px 20px 20px;
+    }
+    .footer-infos {
+        text-align: left;
+    }
+}

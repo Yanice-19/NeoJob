@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="fr">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Admin - Neo Board</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap"
+            rel="stylesheet"
+        />
+        <link rel="stylesheet" href="/style.css" />
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    </head>
+    <body>
+        <!-- en-tête : logo + retour au site / déconnexion -->
+        <header class="site-header">
+            <a
+                href="/"
+                style="
+                    display: flex;
+                    align-items: center;
+                    gap: 14px;
+                    text-decoration: none;
+                    color: #f6f8f3;
+                "
+            >
+                <img src="/logo.svg" alt="" width="44" height="44" />
+                <span style="font-size: 32px; font-weight: 700">Neo Job. Admin</span>
+            </a>
+
+            <nav class="site-nav">
+                <a href="/">← Retour au site</a>
+                <button id="btn-logout">Déconnexion</button>
+            </nav>
+        </header>
+
+        <main class="large">
+            <!-- tout est rempli par le script : onglets, formulaire, tableau, pagination -->
+            <nav id="onglets"></nav>
+            <p id="message"></p>
+            <button id="btn-nouveau">+ Ajouter</button>
+            <form id="formulaire" hidden></form>
+            <div class="table-wrap">
+                <table>
+                    <thead></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div id="pagination"></div>
+        </main>
+
+        <!-- pied de page -->
+        <footer class="site-footer">
+            <div class="footer-contenu">
+                <div class="footer-marque">
+                    <span class="footer-titre">Neo Job</span>
+                    <p>Trouvez le poste qui vous ressemble.</p>
+                </div>
+                <div class="footer-infos">
+                    <p>Yanice Eloundi</p>
+                </div>
+            </div>
+            <p class="footer-copy">© 2026 Neo Job</p>
+        </footer>
+
+
+        <script>
+            // ---------- 1. description des tables ----------
+
+            // pour chaque table : les champs du formulaire et leur type
+            // (le tableau et le formulaire sont générés à partir de là)
+            const TABLES = {
+                ads: {
+                    champs: [
+                        { nom: "title", label: "Titre" },
+                        {
+                            nom: "description",
+                            label: "Description",
+                            type: "textarea",
+                        },
+                        {
+                            nom: "company_id",
+                            label: "Entreprise",
+                            type: "select-company",
+                        },
+                        {
+                            nom: "category_id",
+                            label: "Catégorie",
+                            type: "select-category",
+                        },
+                        { nom: "salary", label: "Salaire" },
+                        { nom: "location", label: "Lieu", type: "datalist" },
+                        {
+                            nom: "working_time",
+                            label: "Temps de travail",
+                            type: "select",
+                            options: [
+                                "Temps plein",
+                                "Temps partiel",
+                                "Alternance",
+                                "Stage",
+                            ],
+                        },
+                    ],
+                },
+                companies: {
+                    champs: [{ nom: "name", label: "Nom" }],
+                },
+                categories: {
+                    champs: [{ nom: "name", label: "Nom" }],
+                },
+                people: {
+                    champs: [
+                        { nom: "name", label: "Nom" },
+                        { nom: "email", label: "E-mail", type: "email" },
+                        { nom: "phone", label: "Téléphone" },
+                        {
+                            nom: "role",
+                            label: "Rôle",
+                            type: "select",
+                            options: ["user", "admin"],
+                        },
+                    ],
+                },
+                applications: {
+                    champs: [
+                        {
+                            nom: "person_id",
+                            label: "ID personne",
+                            type: "number",
+                        },
+                        { nom: "ad_id", label: "ID annonce", type: "number" },
+                        { nom: "message", label: "Message", type: "textarea" },
+                        { nom: "cv_url", label: "Lien CV" },
+                    ],
+                },
+            };
+
+            // noms affichés sur les onglets
+            const LIBELLES = {
+                ads: "Annonces",
+                companies: "Entreprises",
+                categories: "Catégories",
+                people: "Personnes",
+                applications: "Candidatures",
+            };
+
+            // ---------- 2. état de la page ----------
+
+            const LIMITE = 10; // lignes par page
+            let tableCourante = "ads";
+            let page = 1;
+            let idEnEdition = null; // null = on crée, sinon on modifie cet id
+
+            const formulaire = document.getElementById("formulaire");
+            const message = document.getElementById("message");
+
+            // message vert (ok) ou rouge (erreur) au-dessus du tableau
+            function afficherMessage(texte, ok) {
+                message.className = ok ? "ok" : "erreur";
+                message.textContent = texte;
+                if (!ok) {
+                    message.scrollIntoView({
+                        behavior: "smooth",
+                        block: "center",
+                    });
+                }
+            }
+
+            // ---------- 3. onglets ----------
+
+            function afficherOnglets() {
+                const nav = document.getElementById("onglets");
+                nav.innerHTML = "";
+                Object.keys(TABLES).forEach((nom) => {
+                    const bouton = document.createElement("button");
+                    bouton.textContent = LIBELLES[nom];
+                    if (nom === tableCourante) bouton.className = "actif";
+                    // changer d'onglet : retour page 1 et on recharge les données
+                    bouton.addEventListener("click", () => {
+                        tableCourante = nom;
+                        page = 1;
+                        formulaire.hidden = true;
+                        message.textContent = "";
+                        afficherOnglets();
+                        charger();
+                    });
+                    nav.appendChild(bouton);
+                });
+            }
+
+            // ---------- 4. chargement des données ----------
+
+            async function charger() {
+                const res = await fetch(
+                    "/" + tableCourante + "?page=" + page + "&limit=" + LIMITE
+                );
+                // pas connecté ou pas admin : retour à l'accueil
+                if (res.status === 401 || res.status === 403) {
+                    window.location.href = "/";
+                    return;
+                }
+                const json = await res.json();
+                let lignes;
+                let total;
+                // /ads renvoie un simple tableau, les autres {data, total}
+                if (Array.isArray(json)) {
+                    total = json.length;
+                    lignes = json.slice((page - 1) * LIMITE, page * LIMITE);
+                } else {
+                    lignes = json.data;
+                    total = json.total;
+                }
+                // page vide (dernier élément supprimé) : on recule d'une page
+                if (lignes.length === 0 && page > 1) {
+                    page--;
+                    charger();
+                    return;
+                }
+                afficherTableau(lignes);
+                afficherPagination(total);
+            }
+
+            // ---------- 5. tableau ----------
+
+            function afficherTableau(lignes) {
+                const colonnes = [
+                    "id",
+                    ...TABLES[tableCourante].champs.map((c) => c.nom),
+                ];
+                const thead = document.querySelector("thead");
+                const tbody = document.querySelector("tbody");
+                thead.innerHTML = "";
+                tbody.innerHTML = "";
+
+                // ligne de titres
+                const titres = [
+                    "ID",
+                    ...TABLES[tableCourante].champs.map((c) => c.label),
+                    "Actions",
+                ];
+                const enTete = document.createElement("tr");
+                titres.forEach((titre) => {
+                    const th = document.createElement("th");
+                    th.textContent = titre;
+                    enTete.appendChild(th);
+                });
+                thead.appendChild(enTete);
+
+                // une ligne par enregistrement
+                lignes.forEach((ligne) => {
+                    const tr = document.createElement("tr");
+                    colonnes.forEach((nom) => {
+                        const td = document.createElement("td");
+                        let valeur =
+                            ligne[nom] === null ? "" : String(ligne[nom]);
+
+                        // le CV devient un lien, le reste est coupé à 60 caractères
+                        if (nom === "cv_url" && valeur) {
+                            const lien = document.createElement("a");
+                            lien.href = valeur;
+                            lien.textContent = "Télécharger le CV";
+                            lien.target = "_blank";
+                            td.appendChild(lien);
+                        } else {
+                            if (valeur.length > 60)
+                                valeur = valeur.slice(0, 60) + "…";
+                            td.textContent = valeur;
+                        }
+                        tr.appendChild(td);
+                    });
+
+                    // boutons Modifier / Supprimer
+                    const tdActions = document.createElement("td");
+                    const btnEdit = document.createElement("button");
+                    btnEdit.textContent = "Modifier";
+                    btnEdit.addEventListener("click", () =>
+                        ouvrirFormulaire(ligne)
+                    );
+                    const btnSuppr = document.createElement("button");
+                    btnSuppr.textContent = "Supprimer";
+                    btnSuppr.className = "danger";
+                    btnSuppr.addEventListener("click", () =>
+                        supprimer(ligne.id)
+                    );
+                    tdActions.appendChild(btnEdit);
+                    tdActions.appendChild(btnSuppr);
+                    tr.appendChild(tdActions);
+
+                    tbody.appendChild(tr);
+                });
+            }
+
+            // ---------- 6. pagination ----------
+
+            function afficherPagination(total) {
+                const zone = document.getElementById("pagination");
+                zone.innerHTML = "";
+                const pagesTotal = Math.max(1, Math.ceil(total / LIMITE));
+
+                const precedent = document.createElement("button");
+                precedent.textContent = "← Précédent";
+                precedent.disabled = page <= 1;
+                precedent.addEventListener("click", () => {
+                    page--;
+                    charger();
+                });
+
+                const suivant = document.createElement("button");
+                suivant.textContent = "Suivant →";
+                suivant.disabled = page >= pagesTotal;
+                suivant.addEventListener("click", () => {
+                    page++;
+                    charger();
+                });
+
+                const texte = document.createElement("span");
+                texte.textContent =
+                    "Page " +
+                    page +
+                    " / " +
+                    pagesTotal +
+                    " (" +
+                    total +
+                    " lignes)";
+
+                zone.appendChild(precedent);
+                zone.appendChild(suivant);
+                zone.appendChild(texte);
+            }
+
+            // ---------- 7. formulaire (ajout et modification) ----------
+
+            // ligne = null pour un ajout, sinon la ligne à modifier
+            function ouvrirFormulaire(ligne) {
+                idEnEdition = ligne ? ligne.id : null;
+                formulaire.innerHTML = "";
+
+                const titre = document.createElement("h2");
+                titre.textContent = ligne
+                    ? "Modifier n°" + ligne.id
+                    : "Nouveau";
+                formulaire.appendChild(titre);
+
+                // un champ par entrée de TABLES, selon son type
+                TABLES[tableCourante].champs.forEach((champ) => {
+                    const label = document.createElement("label");
+                    label.appendChild(document.createTextNode(champ.label));
+                    let saisie;
+
+                    if (champ.type === "textarea") {
+                        // zone de texte
+                        saisie = document.createElement("textarea");
+                        saisie.rows = 4;
+                        saisie.name = champ.nom;
+                        if (ligne && ligne[champ.nom])
+                            saisie.value = ligne[champ.nom];
+                        label.appendChild(saisie);
+                    } else if (champ.type === "select") {
+                        // liste fixe (contrat, rôle)
+                        saisie = document.createElement("select");
+                        champ.options.forEach((option) => {
+                            const o = document.createElement("option");
+                            o.value = option;
+                            o.textContent = option;
+                            saisie.appendChild(o);
+                        });
+                        saisie.name = champ.nom;
+                        if (ligne && ligne[champ.nom])
+                            saisie.value = ligne[champ.nom];
+                        label.appendChild(saisie);
+                    } else if (
+                        champ.type === "select-company" ||
+                        champ.type === "select-category"
+                    ) {
+                        // liste remplie depuis la base (entreprises ou catégories)
+                        saisie = document.createElement("select");
+                        saisie.name = champ.nom;
+
+                        const endpoint =
+                            champ.type === "select-company"
+                                ? "/companies?limit=100"
+                                : "/categories?limit=100";
+
+                        fetch(endpoint)
+                            .then((res) => res.json())
+                            .then((json) => {
+                                const elements = Array.isArray(json)
+                                    ? json
+                                    : json.data || [];
+                                elements.forEach((item) => {
+                                    const opt =
+                                        document.createElement("option");
+                                    opt.value = item.id;
+                                    opt.textContent = item.name;
+                                    // présélection en cas de modification
+                                    if (
+                                        ligne &&
+                                        Number(ligne[champ.nom]) === item.id
+                                    ) {
+                                        opt.selected = true;
+                                    }
+                                    saisie.appendChild(opt);
+                                });
+                            });
+
+                        label.appendChild(saisie);
+                    } else if (champ.type === "datalist") {
+                        // saisie libre avec suggestions (villes déjà utilisées)
+                        saisie = document.createElement("input");
+                        saisie.type = "text";
+                        saisie.name = champ.nom;
+                        saisie.setAttribute("list", "suggestions-villes");
+                        if (ligne && ligne[champ.nom])
+                            saisie.value = ligne[champ.nom];
+
+                        const datalist = document.createElement("datalist");
+                        datalist.id = "suggestions-villes";
+
+                        fetch("/locations")
+                            .then((res) => res.json())
+                            .then((villes) => {
+                                villes.forEach((ville) => {
+                                    const opt =
+                                        document.createElement("option");
+                                    opt.value = ville;
+                                    datalist.appendChild(opt);
+                                });
+                            });
+
+                        label.appendChild(saisie);
+                        label.appendChild(datalist);
+                    } else {
+                        // champ simple (texte, email, nombre)
+                        saisie = document.createElement("input");
+                        saisie.type = champ.type || "text";
+                        saisie.name = champ.nom;
+                        if (
+                            ligne &&
+                            ligne[champ.nom] !== null &&
+                            ligne[champ.nom] !== undefined
+                        ) {
+                            saisie.value = ligne[champ.nom];
+                        }
+                        label.appendChild(saisie);
+                    }
+
+                    formulaire.appendChild(label);
+                });
+
+                // boutons Enregistrer / Annuler
+                const btnSave = document.createElement("button");
+                btnSave.type = "submit";
+                btnSave.textContent = "Enregistrer";
+                const btnCancel = document.createElement("button");
+                btnCancel.type = "button";
+                btnCancel.className = "secondaire";
+                btnCancel.textContent = "Annuler";
+                btnCancel.addEventListener("click", () => {
+                    formulaire.hidden = true;
+                });
+                formulaire.appendChild(btnSave);
+                formulaire.appendChild(btnCancel);
+
+                formulaire.hidden = false;
+                formulaire.scrollIntoView({
+                    behavior: "smooth",
+                    block: "start",
+                });
+            }
+
+            // bouton "+ Ajouter"
+            document
+                .getElementById("btn-nouveau")
+                .addEventListener("click", () => {
+                    ouvrirFormulaire(null);
+                });
+
+            // ---------- 8. enregistrement ----------
+
+            formulaire.addEventListener("submit", async (evenement) => {
+                evenement.preventDefault();
+                // on récupère les valeurs, les nombres sont convertis
+                const donnees = {};
+                TABLES[tableCourante].champs.forEach((champ) => {
+                    let valeur = formulaire.elements[champ.nom].value;
+                    if (
+                        champ.type === "number" ||
+                        champ.type === "select-company" ||
+                        champ.type === "select-category"
+                    ) {
+                        valeur = valeur === "" ? null : Number(valeur);
+                    }
+                    donnees[champ.nom] = valeur;
+                });
+
+                // PUT pour modifier (avec l'id), POST pour créer
+                const url =
+                    "/" +
+                    tableCourante +
+                    (idEnEdition ? "/" + idEnEdition : "");
+                const res = await fetch(url, {
+                    method: idEnEdition ? "PUT" : "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(donnees),
+                });
+
+                const json = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    afficherMessage(
+                        json.error || "Erreur lors de l'enregistrement.",
+                        false
+                    );
+                    return;
+                }
+                formulaire.hidden = true;
+                afficherMessage("Enregistré.", true);
+                charger();
+            });
+
+            // ---------- 9. suppression ----------
+
+            async function supprimer(id) {
+                if (!confirm("Supprimer le n°" + id + " ?")) return;
+                const res = await fetch("/" + tableCourante + "/" + id, {
+                    method: "DELETE",
+                });
+                const json = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    afficherMessage(
+                        json.error || "Erreur lors de la suppression.",
+                        false
+                    );
+                    return;
+                }
+                afficherMessage("Supprimé.", true);
+                charger();
+            }
+
+            // ---------- 10. déconnexion et démarrage ----------
+
+            document
+                .getElementById("btn-logout")
+                .addEventListener("click", async () => {
+                    await fetch("/auth/logout", { method: "POST" });
+                    window.location.href = "/";
+                });
+
+            // vérifie d'abord qui est connecté : seul un admin voit la page
+            async function demarrer() {
+                const res = await fetch("/auth/me");
+                if (!res.ok) {
+                    window.location.href = "/login.html";
+                    return;
+                }
+                const user = await res.json();
+                if (user.role !== "admin") {
+                    window.location.href = "/";
+                    return;
+                }
+                afficherOnglets();
+                charger();
+            }
+
+            demarrer();
+        </script>
+    </body>
+</html>
